@@ -1,0 +1,6 @@
+{
+    "require": {
+        "xeroapi/xero-php-oauth2": "^7.2",
+        "stripe/stripe-php": "^15.8"
+    }
+}

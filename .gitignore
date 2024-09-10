@@ -1,0 +1,13 @@
+# Ignore sensitive config file
+config.php
+
+# Composer vendor directory
+/vendor
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# IDE-specific files
+.idea/
+.vscode/
