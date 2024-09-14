@@ -306,8 +306,10 @@ try {
                                     'amount' => $amount, // Use determined amount
                                     'currency' => strtoupper($transaction->currency),
                                     'account' => $accountDetails['account_code'],
-                                    'type' => $mappedType,
-                                    'destination' => $mappedDestination,
+                                    'typeCategoryID' => $typeCategoryID,
+                                    'typeOptionID' => $typeOptionID,
+                                    'destinationCategoryID' => $destinationCategoryID,
+                                    'destinationOptionID' => $destinationOptionID,
                                 ];
                                 $accountFound = true;
                                 break; // Exit loop once account is found
@@ -352,7 +354,7 @@ try {
             // Prepare line items for the invoice
             $lineItems = [];
             foreach ($invoiceItems as $item) {
-//                var_dump($item);
+
                 $lineItem = new XeroAPI\XeroPHP\Models\Accounting\LineItem();
                 $lineItem->setDescription($item['description']);
                 $lineItem->setQuantity(1);  // Assuming quantity is 1
@@ -361,12 +363,12 @@ try {
 
                 // Set tracking for "Type" and "Destination"
                 $trackingCategory = new XeroAPI\XeroPHP\Models\Accounting\LineItemTracking();
-                $trackingCategory->setTrackingCategoryId($typeCategoryID);
-                $trackingCategory->setTrackingOptionId($typeOptionID); // Set the correct option ID for the type
+                $trackingCategory->setTrackingCategoryId($item['typeCategoryID']);
+                $trackingCategory->setTrackingOptionId($item['typeOptionID']); // Set the correct option ID for the type
 
                 $trackingProject = new XeroAPI\XeroPHP\Models\Accounting\LineItemTracking();
-                $trackingProject->setTrackingCategoryId($destinationCategoryID);
-                $trackingProject->setTrackingOptionId($destinationOptionID); // Set the correct option ID for the destination
+                $trackingProject->setTrackingCategoryId($item['destinationCategoryID']);
+                $trackingProject->setTrackingOptionId($item['destinationOptionID']); // Set the correct option ID for the destination
 
                 $lineItem->setTracking([$trackingCategory, $trackingProject]);
                 $lineItems[] = $lineItem;
@@ -381,7 +383,7 @@ try {
             // Debugging
             var_dump($invoice);
 
-            die();
+
 
              $createdInvoice = $accountingApi->createInvoices($xero_tenant_id, new XeroAPI\XeroPHP\Models\Accounting\Invoices(['invoices' => [$invoice]]));
              echo "Invoice created successfully! Invoice ID: " . $createdInvoice->getInvoices()[0]->getInvoiceId() . "\n";
