@@ -1,0 +1,10 @@
+runtime: php83  # or php81 if using PHP 8.1
+entrypoint: serve index.php  # Use your main PHP file as the entry point
+env: standard  # Standard environment
+
+handlers:
+  - url: /images
+    static_files: images
+    upload: images/.*
+  - url: /.*
+    script: auto  # Route other requests to your PHP application

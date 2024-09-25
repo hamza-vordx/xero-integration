@@ -1,89 +1,83 @@
 <?php
 
-
 class StorageClass
 {
-    function __construct()
+    private $filePath;
+
+    public function __construct($filePath = 'tokens.json')
     {
-        if (!isset($_SESSION)) {
-            $this->init_session();
+        $this->filePath = $filePath;
+
+        // Ensure the file exists
+        if (!file_exists($this->filePath)) {
+            file_put_contents($this->filePath, json_encode([]));
         }
-    }
-
-    public function init_session()
-    {
-        session_start();
-    }
-
-    public function getSession()
-    {
-        return $_SESSION['oauth2'];
-    }
-
-    public function startSession($token, $secret, $expires = null)
-    {
-        session_start();
-    }
-
-    public function setToken($token, $expires = null, $tenantId, $refreshToken, $idToken)
-    {
-        $_SESSION['oauth2'] = [
-            'token' => $token,
-            'expires' => $expires,
-            'tenant_id' => $tenantId,
-            'refresh_token' => $refreshToken,
-            '' => $idToken
-        ];
     }
 
     public function getToken()
     {
-        //If it doesn't exist or is expired, return null
-        if (empty($this->getSession())
-            || ($_SESSION['oauth2']['expires'] !== null
-                && $_SESSION['oauth2']['expires'] <= time())
-        ) {
+        $tokens = $this->readTokens();
+
+        // If it doesn't exist or is expired, return null
+        if (empty($tokens) || ($tokens['expires'] !== null && $tokens['expires'] <= time())) {
             return null;
         }
-        return $this->getSession();
+
+        return $tokens;
+    }
+
+    public function setToken($token, $expires = null, $tenantId, $refreshToken, $idToken)
+    {
+        $tokens = [
+            'token' => $token,
+            'expires' => $expires,
+            'tenant_id' => $tenantId,
+            'refresh_token' => $refreshToken,
+            'id_token' => $idToken,
+        ];
+
+        file_put_contents($this->filePath, json_encode($tokens));
     }
 
     public function getAccessToken()
     {
-        return $_SESSION['oauth2']['token'];
+        $tokens = $this->readTokens();
+        return $tokens['token'] ?? null;
     }
 
     public function getRefreshToken()
     {
-        return $_SESSION['oauth2']['refresh_token'];
+        $tokens = $this->readTokens();
+        return $tokens['refresh_token'] ?? null;
     }
-
 
     public function getExpires()
     {
-        return $_SESSION['oauth2']['expires'];
+        $tokens = $this->readTokens();
+        return $tokens['expires'] ?? null;
     }
 
     public function getXeroTenantId()
     {
-        return $_SESSION['oauth2']['tenant_id'];
+        $tokens = $this->readTokens();
+        return $tokens['tenant_id'] ?? null;
     }
 
     public function getIdToken()
     {
-        return $_SESSION['oauth2']['id_token'];
+        $tokens = $this->readTokens();
+        return $tokens['id_token'] ?? null;
     }
 
     public function getHasExpired()
     {
-        if (!empty($this->getSession())) {
-            if (time() > $this->getExpires()) {
-                return true;
-            } else {
-                return false;
-            }
-        } else {
-            return true;
-        }
+        $tokens = $this->readTokens();
+        return empty($tokens) || (time() > ($tokens['expires'] ?? 0));
+    }
+
+    private function readTokens()
+    {
+        $content = file_get_contents($this->filePath);
+        return json_decode($content, true);
     }
 }
