@@ -68,17 +68,24 @@ http_response_code(200);
 // Token refreshing logic
 if ($storage->getHasExpired()) {
     $provider = new \League\OAuth2\Client\Provider\GenericProvider([
-        'clientId'                => $xero_client_id,
-        'clientSecret'            => $xero_client_secret,
-        'redirectUri'             => $xero_redirect_uri,
+        'clientId'                => $config['xero']['client_id'],
+        'clientSecret'            => $config['xero']['client_secret'],
+        'redirectUri'             => $config['xero']['redirect_uri'],
         'urlAuthorize'            => 'https://login.xero.com/identity/connect/authorize',
         'urlAccessToken'          => 'https://identity.xero.com/connect/token',
         'urlResourceOwnerDetails' => 'https://api.xero.com/api.xro/2.0/Organisation'
     ]);
 
+    // Retrieve refresh token
+    $refreshToken = $storage->getRefreshToken();
+    if (empty($refreshToken)) {
+        echo "No refresh token available.";
+        exit;
+    }
+
     try {
         $newAccessToken = $provider->getAccessToken('refresh_token', [
-            'refresh_token' => $storage->getRefreshToken()
+            'refresh_token' => $refreshToken
         ]);
 
         // Save the new token, expiration time, and refresh token
@@ -92,7 +99,10 @@ if ($storage->getHasExpired()) {
 
         echo "Access token refreshed successfully.\n";
     } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
-        echo 'Failed to refresh access token: ' . $e->getMessage() . "\n";
+        error_log('Failed to refresh access token: ' . $e->getMessage());
+        exit;
+    } catch (Exception $e) {
+        error_log('General error: ' . $e->getMessage());
         exit;
     }
 }
@@ -571,7 +581,7 @@ $payoutDateFormatted = date('Y-m-d', $payoutDate); // Format as 'YYYY-MM-DD'
             // Set current date and due date
             $invoice->setDate(new DateTime());
             $invoice->setDueDate((new DateTime())->modify('+7 days')); // Due date in 30 days
-            $invoice->setReference('Stripe Payout: ' . $payoutDateFormatted);
+            $invoice->setReference('Stripe Payout Date: ' . $payoutDateFormatted);
             // Prepare line items for the invoice
             $lineItems = [];
             foreach ($invoiceItems as $item) {
@@ -624,6 +634,7 @@ $payoutDateFormatted = date('Y-m-d', $payoutDate); // Format as 'YYYY-MM-DD'
 
              $createdInvoice = $accountingApi->createInvoices($xero_tenant_id, new XeroAPI\XeroPHP\Models\Accounting\Invoices(['invoices' => [$invoice]]));
              echo "Invoice created successfully! Invoice ID: " . $createdInvoice->getInvoices()[0]->getInvoiceId() . "\n";
+
 
         } catch (XeroAPI\XeroPHP\ApiException $e) {
             echo "Exception when creating Xero invoice: ", $e->getMessage(), PHP_EOL;

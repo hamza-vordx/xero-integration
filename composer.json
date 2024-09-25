@@ -1,6 +1,15 @@
 {
     "require": {
+        "slim/slim": "^4.0",
+        "slim/psr7": "^1.4",
         "xeroapi/xero-php-oauth2": "^7.2",
-        "stripe/stripe-php": "^15.8"
+        "stripe/stripe-php": "^15.8",
+        "google/cloud-storage": "^1.42"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
     }
+
 }

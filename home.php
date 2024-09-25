@@ -11,7 +11,8 @@
 <body>
 <div class="container">
     <h1>xero-php-oauth2-starter</h1>
-    <a href="authorization.php"><img src="images/connect-blue.svg"></a>
+    <a href="/authorization"><img src="images/connect-blue.svg" alt="Connect to Xero"></a>
+
 </div>
 </body>
 </html>

@@ -5,6 +5,6 @@ env: standard  # Standard environment
 handlers:
   - url: /images
     static_files: images
-    upload: images/.*
-  - url: /.*
-    script: auto  # Route other requests to your PHP application
+    upload: images/.*  # Allow uploading of image files
+  - url: /.*  # Route all other requests to the Slim application
+    script: auto  # Automatically handle requests with your Slim app

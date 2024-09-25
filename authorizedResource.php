@@ -10,6 +10,9 @@ use XeroAPI\XeroPHP\AccountingObjectSerializer;
 $storage = new StorageClass();
 $xeroTenantId = (string)$storage->getXeroTenantId();
 
+
+
+// Token refreshing logic
 if ($storage->getHasExpired()) {
     $provider = new \League\OAuth2\Client\Provider\GenericProvider([
         'clientId'                => $config['xero']['client_id'],
@@ -20,18 +23,35 @@ if ($storage->getHasExpired()) {
         'urlResourceOwnerDetails' => 'https://api.xero.com/api.xro/2.0/Organisation'
     ]);
 
-    $newAccessToken = $provider->getAccessToken('refresh_token', [
-        'refresh_token' => $storage->getRefreshToken()
-    ]);
+    // Retrieve refresh token
+    $refreshToken = $storage->getRefreshToken();
+    if (empty($refreshToken)) {
+        echo "No refresh token available.";
+        exit;
+    }
 
-    // Save token, expiration, refresh token, and ID token to file
-    $storage->setToken(
-        $newAccessToken->getToken(),
-        $newAccessToken->getExpires(),
-        $xeroTenantId,
-        $newAccessToken->getRefreshToken(),
-        $newAccessToken->getValues()["id_token"]
-    );
+    try {
+        $newAccessToken = $provider->getAccessToken('refresh_token', [
+            'refresh_token' => $refreshToken
+        ]);
+
+        // Save the new token, expiration time, and refresh token
+        $storage->setToken(
+            $newAccessToken->getToken(),
+            $newAccessToken->getExpires(),
+            $xeroTenantId,
+            $newAccessToken->getRefreshToken(),
+            $newAccessToken->getValues()["id_token"]
+        );
+
+        echo "Access token refreshed successfully.\n";
+    } catch (\League\OAuth2\Client\Provider\Exception\IdentityProviderException $e) {
+        error_log('Failed to refresh access token: ' . $e->getMessage());
+        exit;
+    } catch (Exception $e) {
+        error_log('General error: ' . $e->getMessage());
+        exit;
+    }
 }
 
 $tokenData = $storage->getToken(); // Get the token data

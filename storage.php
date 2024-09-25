@@ -1,32 +1,40 @@
 <?php
 
+use Google\Cloud\Storage\StorageClient;
+
 class StorageClass
 {
-    private $filePath;
+    private $bucketName;
+    private $storage;
 
-    public function __construct($filePath = 'tokens.json')
+    // Set a default bucket name in the constructor
+    public function __construct($bucketName = 'stripe-xero-integration-436615.appspot.com')
     {
-        $this->filePath = $filePath;
-
-        // Ensure the file exists
-        if (!file_exists($this->filePath)) {
-            file_put_contents($this->filePath, json_encode([]));
-        }
+        $this->bucketName = $bucketName;
+        // Initialize the Google Cloud Storage client
+        $this->storage = new StorageClient();
     }
 
     public function getToken()
     {
-        $tokens = $this->readTokens();
+        // Logic to read token from Google Cloud Storage
+        $bucket = $this->storage->bucket($this->bucketName);
+        $object = $bucket->object('tokens.json');
 
-        // If it doesn't exist or is expired, return null
-        if (empty($tokens) || ($tokens['expires'] !== null && $tokens['expires'] <= time())) {
-            return null;
+        if ($object->exists()) {
+            $content = $object->downloadAsString();
+            $tokens = json_decode($content, true);
+
+            // Check if token is expired
+            if (!empty($tokens) && ($tokens['expires'] !== null && $tokens['expires'] > time())) {
+                return $tokens;
+            }
         }
 
-        return $tokens;
+        return null; // No valid token found
     }
 
-    public function setToken($token, $expires = null, $tenantId, $refreshToken, $idToken)
+    public function setToken($token, $expires, $tenantId, $refreshToken, $idToken)
     {
         $tokens = [
             'token' => $token,
@@ -36,7 +44,11 @@ class StorageClass
             'id_token' => $idToken,
         ];
 
-        file_put_contents($this->filePath, json_encode($tokens));
+        // Save the token to Google Cloud Storage
+        $bucket = $this->storage->bucket($this->bucketName);
+        $bucket->upload(json_encode($tokens), [
+            'name' => 'tokens.json',
+        ]);
     }
 
     public function getAccessToken()
@@ -77,7 +89,15 @@ class StorageClass
 
     private function readTokens()
     {
-        $content = file_get_contents($this->filePath);
-        return json_decode($content, true);
+        // Logic to read tokens from Google Cloud Storage
+        $bucket = $this->storage->bucket($this->bucketName);
+        $object = $bucket->object('tokens.json');
+
+        if ($object->exists()) {
+            $content = $object->downloadAsString();
+            return json_decode($content, true);
+        }
+
+        return []; // Return an empty array if the tokens file doesn't exist
     }
 }
